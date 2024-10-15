@@ -5,22 +5,53 @@ INFO_DATA = {
   "reservation_contacts": {
     "France_individual_booking": {
       "contact": "00 820 835 835",
-      "open_hours": "Monday to Saturday from 8 a.m. to 10 p.m., Sunday and public holidays from 9 a.m. to 9 p.m.",
+      "open_hours": {"Monday": (8, 22),
+            "Tuesday": (8, 22),
+            "Wednesday": (8, 22),
+            "Thursday": (8, 22),
+            "Friday": (8, 22),
+            "Saturday": (8, 22),
+            "Sunday": (9, 21),},
       "call_rate": "€0.12/min + call charges (Rate applicable from a landline in France, subject to change)."
     },
     "Antilles_Guyane_individual_booking": {
       "contact": "00 820 835 835",
-      "open_hours": "Monday to Saturday from 7 a.m. to 7 p.m., Sunday and public holidays from 6 a.m. to 3 p.m.",
+      "open_hours": {
+          "Monday": (8, 22),    # Opening hours from 7 a.m. to 7 p.m.
+        "Tuesday": (8, 22),
+        "Wednesday": (8, 22),
+        "Thursday": (8, 22),
+        "Friday": (8, 22),
+        "Saturday": (8, 22),
+        "Sunday": (9, 21)
+            },     # Sunday and public holidays from 6 a.m. to 3 p.m.",
       "call_rate": "€0.11/min + call charges (Rate applicable from a landline in the French Antilles or French Guiana, subject to change)."
     },
     "France_preference_account_Student18_29": {
       "contact": "0 820 830 832",
-      "open_hours": "Monday to Saturday from 8 a.m. to 10 p.m., Sunday and public holidays from 9 a.m. to 9 p.m.",
+      "open_hours":{
+          "Monday": (8, 22),    # Opening hours from 7 a.m. to 7 p.m.
+            "Tuesday": (8, 22),
+            "Wednesday": (8, 22),
+            "Thursday": (8, 22),
+            "Friday": (8, 22),
+            "Saturday": (8, 22),
+            "Sunday": (9, 21)   # Sunday and public holidays from 6 a.m. to 3 p.m.
+    },
       "call_rate": "€0.12/min + call charges (Rate applicable from a landline in Metropolitan France, subject to change)."
     },
     "Antilles_Guyane_preference_account_Student18_29": {
       "contact": "0 820 830 832",
-      "open_hours": "Monday to Saturday from 7 a.m. to 7 p.m., Sunday and public holidays from 7 a.m. to 4 p.m.",
+      "open_hours":                
+       { 
+           "Monday": (7, 19),    # Opening hours from 7 a.m. to 7 p.m.
+            "Tuesday": (7, 19),
+            "Wednesday": (7, 19),
+            "Thursday": (7, 19),
+            "Friday": (7, 19),
+            "Saturday": (7, 19),
+            "Sunday": (7, 16)     # Sunday and public holidays from 7 a.m. to 4 p.m.
+       },
       "call_rate": "€0.11/min + call charges (Rate applicable from a landline in French Antilles/Guyane, subject to change)."
     }
   },
@@ -71,20 +102,29 @@ FUNCT_DESCRIPTION = {
                     },
                     "reservation_services": {
                         "type": "string",
-                        "description": "What's the reservation services that the user has requested if the type_of_request is 'reservation_contacts'?",
+                        "description": "What's the reservation services that the user has requested if the type_of_request is 'reservation_contacts'?, e.g. default service = 'France individual booking'",
                         "enum": [
-                        ]
+                            "France individual booking",
+                            "Antilles Guyane individual booking",
+                            "France preference account for students aged between 18 - 29",
+                            "Antilles Guyane preference account for students aged between 18 - 29"
+                        ],
+                        
                     },
                     "group_booking_affreightment_contact_request_type": {
                         "type": "string",
-                        "description": "What's the request type for group booking affreighment that the user has choosen if the type_of_request is 'group_booking_affreightment_contact'?",
+                        "description": "What's the request type for group booking affreighment that the user has choosen if the type_of_request is 'group_booking_affreightment_contact'?, e.g. default request type = 'specific charter request'",
                         "enum": [
+                            "specific charter request",
+                            "group quotation request"
                         ]
                     },
                     "refund_request_type": {
                         "type": "string",
-                        "description": "What's the type of refund requested by the User if the choosen type_of_request is 'refund_request'?",
+                        "description": "What's the type of refund requested by the User if the choosen type_of_request is 'refund_request'?, default requested refund type = 'general refund request'",
                         "enum": [
+                            "general refund request",
+                            "pass zen refund request"
                         ]
                     },
                 },
@@ -101,7 +141,7 @@ class InformationRequestTool:
         "properties": {
             "main_form": {
                 "type": "type_of_request",
-                "label": "Main forms",
+                "label": "Information Requested",
                 "description": "a list of main forms",
                 "value":  "[\"Sub-form Before departure questions\",\"Sub-form Modification - only handles slight changes\",\"Sub-form Payment - Includes multiple charges\",\"Sub-form Cancellation - also handles deletions\",\"Sub-form Customer on spot\",\"Sub-form Claims\",\"Sub-form Member account\",\"sales - Information request on sales\"]"
             }
@@ -150,15 +190,15 @@ class InformationRequestTool:
 
         expected_response = None
 
-        if type_of_request.startsWith("reservation_contacts"):
-            pass
-        elif type_of_request.startsWith("group_booking_affreightment_contact"):
+        if type_of_request.startswith("reservation_contacts"):
+            expected_response = self.handles_reservations_information(reservation_services)
+        elif type_of_request.startswith("group_booking_affreightment_contact"):
             expected_response = self.handles_group_booking_affreightment_information(group_booking_affreightment_contact_request_type)
-        elif type_of_request.startsWith("cancellation_fee_invoice_request"):
-            pass
-        elif type_of_request.startsWith("refund_request"):
+        elif type_of_request.startswith("cancellation_fee_invoice_request"):
+            expected_response = self.handles_cancellation_fee_invoices()
+        elif type_of_request.startswith("refund_request"):
             expected_response = self.handles_refund_information(refund_request_type)
-        elif type_of_request.startsWith("claim_request"):
+        elif type_of_request.startswith("claim_request"):
             expected_response = self.handles_claim_information()
         # return statement
         if expected_response is not None:
@@ -166,8 +206,44 @@ class InformationRequestTool:
         else:
             return {"status": "fail", "response": "failed to retrieve information from the tool, please provide more details on how I can help you!", "token_count": 0,"cost": 0}
     
-    def handles_reservations_information(self):
-        pass
+    def handles_reservations_information(self, reservation_services_p):
+        if reservation_services_p.lower()=="France individual booking":
+            service_name = INFO_DATA["reservation_contacts"]["France_individual_booking"]
+            contact = service_name["contact"]
+            call_rate = service_name["call_rate"]
+            service_open_hours = service_name["open_hours"]
+            if self.is_open(service_open_hours):
+                return f"Please contact us on the following numbers: '{contact}'\nNote the call rates: {call_rate}"
+            return "Please contact us next time during working during!"
+
+        elif reservation_services_p.lower()=="Antilles Guyane individual booking":
+            service_name = INFO_DATA["reservation_contacts"]["Antilles_Guyane_individual_booking"]
+            contact = service_name["contact"]
+            call_rate = service_name["call_rate"]
+            service_open_hours = service_name["open_hours"]
+            if self.is_open(service_open_hours):
+                return f"Please contact us on the following numbers: '{contact}'\nNote the call rates: {call_rate}"
+            return "Please contact us next time during working during!"
+        
+        elif reservation_services_p.lower()=="France preference account for students aged between 18 - 29":
+            service_name = INFO_DATA["reservation_contacts"]["France_preference_account_Student18_29"]
+            contact = service_name["contact"]
+            call_rate = service_name["call_rate"]
+            service_open_hours = service_name["open_hours"]
+            if self.is_open(service_open_hours):
+                return f"Please contact us on the following numbers: '{contact}'\nNote the call rates: {call_rate}"
+            return "Please contact us next time during working during!"
+        
+        elif reservation_services_p.lower()=="Antilles Guyane preference account for students aged between 18 - 29":
+            service_name = INFO_DATA["reservation_contacts"]["France_individual_booking"]
+            contact = service_name["contact"]
+            call_rate = service_name["call_rate"]
+            service_open_hours = service_name["open_hours"]
+            if self.is_open(service_open_hours):
+                return f"Please contact us on the following numbers: '{contact}'\nNote the call rates: {call_rate}"
+            return "Please contact us next time during working during!"
+        else:
+            return None
 
     def handles_cancellation_fee_invoices(self):
         electronic_ticket_invoice_information = INFO_DATA["cancellation_fee_invoice_request"]["electronic_ticket_invoice_information"]
@@ -177,7 +253,7 @@ class InformationRequestTool:
         email_request_address = INFO_DATA["cancellation_fee_invoice_request"]["email_request_address"]
         email_instructions = INFO_DATA["cancellation_fee_invoice_request"]["email_instructions"]
         
-        return f"{electronic_ticket_invoice_information}\n{requirements}\nPlease contact the call center on the following numbers '{call_center_contact}', call rate: {call_center_rate}\n or contact through email: '{email_request_address}'\n Please note:{email_instructions}"
+        return f"{electronic_ticket_invoice_information}\n{requirements}\nPlease contact the call center on the following numbers '{call_center_contact}', call rates: {call_center_rate}\nOr contact through email: '{email_request_address}'\n Please note:{email_instructions}"
         
     
     def handles_group_booking_affreightment_information(self, group_booking_affreightment_contact_request_type_p):
@@ -195,6 +271,7 @@ class InformationRequestTool:
             return f"{group_booking_affreightment_contact}\n{group_quotation_request}\n{contact_form_link}"
     
     def handles_refund_information(self, refund_request_type_p):
+        print(refund_request_type_p)
         package_booking_information = INFO_DATA["refund_request"]["package_booking_information"]
         
         if refund_request_type_p.lower() == "general refund request":
@@ -203,13 +280,31 @@ class InformationRequestTool:
             return f"{request_description}\n{general_refund_request_link}\nPlease note:{package_booking_information}"
             
         elif refund_request_type_p.lower() == "pass zen refund request":
-            pass_zen_refund_request_link = INFO_DATA["claim_request"]["pass_zen_refund_request_link"]
+            pass_zen_refund_request_link = INFO_DATA["refund_request"]["pass_zen_refund_request_link"]
             request_description = "Please click the following link to make your refund request:"
-            return f"{request_description}\n{pass_zen_refund_request_link}\nPlease note:{package_booking_information}"
+            return f"{request_description}\n{pass_zen_refund_request_link}\nPlease note: {package_booking_information}"
+        
+        # elif refund_request_type_p == "":
+            # return "Please provide me with correct type of your refund request"
 
     
     def handles_claim_information(self):
         claim_description = INFO_DATA["claim_request"]["description"]
         claim_form_link = INFO_DATA["claim_request"]["claim_form_link"]
         return f"{claim_description}\n{claim_form_link}"
+
+    def is_open(self, open_hours):
+        now = datetime.now()
+        
+        # Get the current day of the week and current hour
+        current_day = now.strftime("%A")  # Full weekday name, e.g., "Monday"
+        current_hour = now.hour           # Current hour in 24-hour format
+
+        # Check if today is in the open hours dict
+        if current_day in open_hours:
+            opening_time, closing_time = open_hours[current_day]
+            if opening_time <= current_hour < closing_time:
+                return True
+        
+        return False
   

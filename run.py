@@ -3,21 +3,16 @@ from decouple import config
 
 import json
 from information_request_tool import InformationRequestTool
-from zendesk_follow_up_tool import FollowUpZendeskRequestTool
 
-congig = {
-     'base_url':"https://voyage-prive-fr.zendesk.com/api/v2",
-     "headers":{"Content-Type": "application/json"},
-     "token": "6di3AMRCQ52SApOgjGxXyx64ZSb2lNPJuw4zltpU",
-     "auth": ("gmusoya@vpg.team/token", "6di3AMRCQ52SApOgjGxXyx64ZSb2lNPJuw4zltpU")
- }
+congig = {}
+
 
 def setup_tools(verbose=True):
     tools = {}
     tool_descriptions = []
     to_use = [
         (InformationRequestTool, congig),
-        (FollowUpZendeskRequestTool, congig)
+
     ]
     for tool, configuration in to_use:
         instance = tool(configuration, verbose=verbose)
