@@ -4,7 +4,9 @@ from decouple import config
 import json
 from information_request_tool import InformationRequestTool
 
-congig = {}
+congig = {
+    "type_of_request": "[\"reservation_contacts - provides reservations information for services offered in both France and the French Antilles/Guyane, including contact numbers, open hours, and call rates for individual bookings and student preference accounts.\",\"cancellation_fee_invoice_request - handles requests for cancellation fee invoices, guiding the user on using electronic tickets as receipts, cancellation procedures, and necessary contacts.\",\"group_booking_affreightment_contact - offers information on group booking benefits for a minimum of 10 people traveling together, specific charter requests for official and business trips, and contact information for obtaining group rate quotes via an online form.\",\"refund_request - provides information and links for requesting refunds, including details for general and Pass Zen refund requests and guidance for package bookings through travel agencies.\",\"claim_request - gives access to filing a claim through a provided link to the claims form for handling complaints.\"]",
+}
 
 
 def setup_tools(verbose=True):

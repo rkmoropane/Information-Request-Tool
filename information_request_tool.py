@@ -1,3 +1,4 @@
+import json
 from datetime import datetime
 
 
@@ -139,11 +140,11 @@ class InformationRequestTool:
 
     parameters = {
         "properties": {
-            "main_form": {
-                "type": "type_of_request",
+            "type_of_request": {
+                "type": "input-area-json",
                 "label": "Information Requested",
-                "description": "a list of main forms",
-                "value":  "[\"Sub-form Before departure questions\",\"Sub-form Modification - only handles slight changes\",\"Sub-form Payment - Includes multiple charges\",\"Sub-form Cancellation - also handles deletions\",\"Sub-form Customer on spot\",\"Sub-form Claims\",\"Sub-form Member account\",\"sales - Information request on sales\"]"
+                "description": "The type of the information requested by the user.",
+                "value":  "[\"reservation_contacts - provides reservations information for services offered in both France and the French Antilles/Guyane, including contact numbers, open hours, and call rates for individual bookings and student preference accounts.\",\"cancellation_fee_invoice_request - handles requests for cancellation fee invoices, guiding the user on using electronic tickets as receipts, cancellation procedures, and necessary contacts.\",\"group_booking_affreightment_contact - offers information on group booking benefits for a minimum of 10 people traveling together, specific charter requests for official and business trips, and contact information for obtaining group rate quotes via an online form.\",\"refund_request - provides information and links for requesting refunds, including details for general and Pass Zen refund requests and guidance for package bookings through travel agencies.\",\"claim_request - gives access to filing a claim through a provided link to the claims form for handling complaints.\"]"
             }
             
         }
@@ -163,6 +164,10 @@ class InformationRequestTool:
         self.config = config # same as properties from parameters
         self.session = session # hold useful methods such as compact_llm, knowledge_base, etc
         self.verbose = verbose
+        self.type_of_request = json.loads(config.get('type_of_request'))
+        self.reservation_services = []
+        self.group_booking_affreightment_contact_request_type = []
+        self.refund_request_type = []
         self.initialize()
 
     def initialize(self):
@@ -177,8 +182,33 @@ class InformationRequestTool:
             - query_knowledgebase: query knowledge base for information, eg. **{queries:list, configs:dict}
         """
         # retrieve your properties from config below
-        self.some_variable = self.config.get('some_name')
+        self.update_paramters()
+        self.initialize_tools()
         # other logics below
+
+    def update_paramters(self):
+        # constants
+
+        # filter
+        for category in self.type_of_request:
+            if category.startswith("reservation_contacts"):
+                self.reservation_services.extend(["France individual booking", "Antilles Guyane individual booking", "France preference account for students aged between 18 - 29", "Antilles Guyane preference account for students aged between 18 - 29"])
+            elif category.startswith("group_booking_affreightment_contact_request_type"):
+                self.group_booking_affreightment_contact_request_type.extend(["specific charter request", "group quotation request"])
+            elif category.startswith("refund_request_type"):
+                self.refund_request_type.extend(["general refund request", "pass zen refund request"])
+
+    def initialize_tools(self):  
+        self.description["function"]["parameters"]["properties"]["type_of_request"]["enum"] = self.type_of_request
+        if self.reservation_services:
+            self.description["function"]["parameters"]["properties"]["reservation_services"]["enum"] = self.reservation_services
+        else: del self.description["function"]["parameters"]["properties"]["reservation_services"]
+        if self.group_booking_affreightment_contact_request_type:
+            self.description["function"]["parameters"]["properties"]["group_booking_affreightment_contact_request_type"]["enum"] = self.group_booking_affreightment_contact_request_type
+        else: del self.description["function"]["parameters"]["properties"]["group_booking_affreightment_contact_request_type"]
+        if self.refund_request_type:
+            self.description["function"]["parameters"]["properties"]["refund_request_type"]["enum"] = self.refund_request_type
+        else: del self.description["function"]["parameters"]["properties"]["refund_request_type"]
 
     def run(self, **kwargs):
         
@@ -202,12 +232,14 @@ class InformationRequestTool:
             expected_response = self.handles_claim_information()
         # return statement
         if expected_response is not None:
-            return {"status": "success", "response": expected_response, "token_count": 0,"cost": 0}
+            return {"status": "success", "response": f"The Bot must return the following to the user as is: \n'{expected_response}'", "token_count": 0,"cost": 0}
         else:
             return {"status": "fail", "response": "failed to retrieve information from the tool, please provide more details on how I can help you!", "token_count": 0,"cost": 0}
     
     def handles_reservations_information(self, reservation_services_p):
-        if reservation_services_p.lower()=="France individual booking":
+        reservation_services = reservation_services_p if reservation_services_p != "" else "France individual booking"
+ 
+        if reservation_services.lower()=="France individual booking":
             service_name = INFO_DATA["reservation_contacts"]["France_individual_booking"]
             contact = service_name["contact"]
             call_rate = service_name["call_rate"]
@@ -216,7 +248,7 @@ class InformationRequestTool:
                 return f"Please contact us on the following numbers: '{contact}'\nNote the call rates: {call_rate}"
             return "Please contact us next time during working during!"
 
-        elif reservation_services_p.lower()=="Antilles Guyane individual booking":
+        elif reservation_services.lower()=="Antilles Guyane individual booking":
             service_name = INFO_DATA["reservation_contacts"]["Antilles_Guyane_individual_booking"]
             contact = service_name["contact"]
             call_rate = service_name["call_rate"]
@@ -225,7 +257,7 @@ class InformationRequestTool:
                 return f"Please contact us on the following numbers: '{contact}'\nNote the call rates: {call_rate}"
             return "Please contact us next time during working during!"
         
-        elif reservation_services_p.lower()=="France preference account for students aged between 18 - 29":
+        elif reservation_services.lower()=="France preference account for students aged between 18 - 29":
             service_name = INFO_DATA["reservation_contacts"]["France_preference_account_Student18_29"]
             contact = service_name["contact"]
             call_rate = service_name["call_rate"]
@@ -234,7 +266,7 @@ class InformationRequestTool:
                 return f"Please contact us on the following numbers: '{contact}'\nNote the call rates: {call_rate}"
             return "Please contact us next time during working during!"
         
-        elif reservation_services_p.lower()=="Antilles Guyane preference account for students aged between 18 - 29":
+        elif reservation_services.lower()=="Antilles Guyane preference account for students aged between 18 - 29":
             service_name = INFO_DATA["reservation_contacts"]["France_individual_booking"]
             contact = service_name["contact"]
             call_rate = service_name["call_rate"]
@@ -257,13 +289,13 @@ class InformationRequestTool:
         
     
     def handles_group_booking_affreightment_information(self, group_booking_affreightment_contact_request_type_p):
-        
-        if group_booking_affreightment_contact_request_type_p.lower() == "specific charter request":
+        group_booking_affreightment_contact_request_type = group_booking_affreightment_contact_request_type_p if group_booking_affreightment_contact_request_type_p != "" else "specific charter request"
+        if group_booking_affreightment_contact_request_type.lower() == "specific charter request":
             specific_charter_request = INFO_DATA["group_booking_affreightment_contact"]["specific_charter_request"].lower()[:-1]
 
             return f"Would you like to {specific_charter_request}?"
             
-        elif group_booking_affreightment_contact_request_type_p.lower() == "group quotation request":
+        elif group_booking_affreightment_contact_request_type.lower() == "group quotation request":
             group_booking_affreightment_contact = INFO_DATA["group_booking_affreightment_contact"]["description"]
             group_quotation_request = INFO_DATA["group_booking_affreightment_contact"]["group_quotation_request"]
             contact_form_link = INFO_DATA["group_booking_affreightment_contact"]["contact_form_link"]
@@ -271,20 +303,21 @@ class InformationRequestTool:
             return f"{group_booking_affreightment_contact}\n{group_quotation_request}\n{contact_form_link}"
     
     def handles_refund_information(self, refund_request_type_p):
-        print(refund_request_type_p)
+        refund_request_type = refund_request_type_p if refund_request_type_p != "" else "general refund request"
+ 
         package_booking_information = INFO_DATA["refund_request"]["package_booking_information"]
         
-        if refund_request_type_p.lower() == "general refund request":
+        if refund_request_type.lower() == "general refund request":
             general_refund_request_link = INFO_DATA["refund_request"]["general_refund_request_link"]
-            request_description = "Please click the following link to make your refund request:"
-            return f"{request_description}\n{general_refund_request_link}\nPlease note:{package_booking_information}"
+            request_description = f"For you to make a refund for your {refund_request_type}, please click the following link to make your refund request:"
+            return f"{request_description}\n{general_refund_request_link}\nNote: {package_booking_information}"
             
-        elif refund_request_type_p.lower() == "pass zen refund request":
+        elif refund_request_type.lower() == "pass zen refund request":
             pass_zen_refund_request_link = INFO_DATA["refund_request"]["pass_zen_refund_request_link"]
-            request_description = "Please click the following link to make your refund request:"
-            return f"{request_description}\n{pass_zen_refund_request_link}\nPlease note: {package_booking_information}"
+            request_description = f"For you to make a refund for your {refund_request_type}, please click the following link to make your refund request:"
+            return f"{request_description}\n{pass_zen_refund_request_link}\nNote: {package_booking_information}"
         
-        # elif refund_request_type_p == "":
+        # elif refund_request_type == "":
             # return "Please provide me with correct type of your refund request"
 
     
